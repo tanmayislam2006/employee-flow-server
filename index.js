@@ -45,8 +45,11 @@ async function run() {
     // get specific user work sheets
     app.get("/myWorkSheet/:email", async (req, res) => {
       const email = req.params.email;
-      const query = { email };
-      const result = await employeeWorkSheets.find(query).toArray();
+      const query = { employee_email: email };
+      const result = await employeeWorkSheets
+        .find(query)
+        .sort({ date: -1 })
+        .toArray();
       res.send(result);
     });
     // register the user data
