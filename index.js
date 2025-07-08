@@ -32,14 +32,21 @@ async function run() {
   try {
     const employeeFLow = client.db("Employee-Flow");
     const userCollection = employeeFLow.collection("Users");
+    const employeeWorkSheets = employeeFLow.collection("Work-Sheets");
     // get signle user information
     app.get("/user/:email", async (req, res) => {
       const email = req.params.email;
-      console.log(email);
       const query = {
         email,
       };
       const result = await userCollection.findOne(query);
+      res.send(result);
+    });
+    // get specific user work sheets
+    app.get("/myWorkSheet/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const result = await employeeWorkSheets.find(query).toArray();
       res.send(result);
     });
     // register the user data
@@ -66,7 +73,12 @@ async function run() {
         res.status(500).send({ message: "Server error" });
       }
     });
-
+    // register user work sheets
+    app.post("/workSheet", async (req, res) => {
+      const sheetData = req.body;
+      const result = await employeeWorkSheets.insertOne(sheetData);
+      res.send(result);
+    });
     // update the last log int information
     app.patch("/login", async (req, res) => {
       const { email, lastSignInTime } = req.body;
