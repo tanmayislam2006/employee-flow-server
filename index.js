@@ -6,7 +6,12 @@ const app = express();
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(cookieParser());
 
@@ -38,9 +43,40 @@ async function run() {
       res.send(result);
     });
     // register the user data
-    app.post("/user", async (req, res) => {
-      const { profileInfo } = req.body;
-      const result = await userCollection.insertOne(profileInfo);
+    app.post("/register", async (req, res) => {
+      try {
+        const { profileInfo } = req.body;
+        const email = profileInfo?.email;
+
+        if (!email) {
+          return res.status(400).send({ message: "Email is required" });
+        }
+
+        // 1️⃣ Check if user already exists
+        const existingUser = await userCollection.findOne({ email });
+        if (existingUser) {
+          return res.status(200).send({ message: "User already exists" });
+        }
+
+        // 2️⃣ Insert new user
+        const result = await userCollection.insertOne(profileInfo);
+        res.send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Server error" });
+      }
+    });
+
+    // update the last log int information
+    app.patch("/login", async (req, res) => {
+      const { email, lastSignInTime } = req.body;
+      const filter = { email: email };
+      const updateDoc = {
+        $set: {
+          lastSignInTime: lastSignInTime,
+        },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
     console.log(
