@@ -27,8 +27,22 @@ async function run() {
   try {
     const employeeFLow = client.db("Employee-Flow");
     const userCollection = employeeFLow.collection("Users");
+    // get signle user information
+    app.get("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      console.log(email);
+      const query = {
+        email,
+      };
+      const result = await userCollection.findOne(query);
+      res.send(result);
+    });
     // register the user data
-
+    app.post("/user", async (req, res) => {
+      const { profileInfo } = req.body;
+      const result = await userCollection.insertOne(profileInfo);
+      res.send(result);
+    });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
