@@ -53,6 +53,11 @@ async function run() {
         .toArray();
       res.send(result);
     });
+    // get all user(employee) work sheets for HR
+    app.get("/workSheets", async (req, res) => {
+      const result = await employeeWorkSheets.find().toArray();
+      res.send(result);
+    });
     // register the user data
     app.post("/register", async (req, res) => {
       try {
