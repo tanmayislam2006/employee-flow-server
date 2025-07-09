@@ -33,6 +33,7 @@ async function run() {
     const employeeFLow = client.db("Employee-Flow");
     const userCollection = employeeFLow.collection("Users");
     const employeeWorkSheets = employeeFLow.collection("Work-Sheets");
+    const payRolls = employeeFLow.collection("Pay-Rolls");
     // get signle user information
     app.get("/user/:email", async (req, res) => {
       const email = req.params.email;
@@ -85,6 +86,12 @@ async function run() {
     app.post("/workSheet", async (req, res) => {
       const sheetData = req.body;
       const result = await employeeWorkSheets.insertOne(sheetData);
+      res.send(result);
+    });
+    // register the requested pay roll for employee by the user
+    app.post("/payRoll", async (req, res) => {
+      const payRollData = req.body;
+      const result = await payRolls.insertOne(payRollData);
       res.send(result);
     });
     // update the entires informatrion
