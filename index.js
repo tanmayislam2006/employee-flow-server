@@ -58,6 +58,21 @@ async function run() {
       const result = await employeeWorkSheets.find().toArray();
       res.send(result);
     });
+    // get all user for Hr
+    app.get("/users", async (req, res) => {
+      const query = {};
+      const {isVerified} = req.query;
+      if (isVerified) {
+        query.isVerified = isVerified === 'true';
+      }
+      const users = await userCollection.find(query).toArray();
+      res.send(users);
+    });
+    // get all pay roll for admin 
+    app.get("/payRolls", async (req, res) => {
+      const result = await payRolls.find().toArray();
+      res.send(result);
+    });
     // register the user data
     app.post("/register", async (req, res) => {
       try {
@@ -82,11 +97,7 @@ async function run() {
         res.status(500).send({ message: "Server error" });
       }
     });
-    // get all user for Hr
-    app.get("/users", async (req, res) => {
-      const users = await userCollection.find().toArray();
-      res.send(users);
-    });
+
     // register user work sheets
     app.post("/workSheet", async (req, res) => {
       const sheetData = req.body;
