@@ -3,12 +3,12 @@ require("dotenv").config();
 const cors = require("cors");
 const port = process.env.PORT || 5000;
 const app = express();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: ["http://localhost:5173", "https://employee-flow-app.web.app"],
     credentials: true,
   })
 );
@@ -82,6 +82,8 @@ async function run() {
       const result = await employeeWorkSheets.insertOne(sheetData);
       res.send(result);
     });
+
+
     // update the last log int information
     app.patch("/login", async (req, res) => {
       const { email, lastSignInTime } = req.body;
@@ -92,6 +94,13 @@ async function run() {
         },
       };
       const result = await userCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+    //  delete a single entry form my work sheet
+    app.delete("/myWorkSheet/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await employeeWorkSheets.deleteOne(query);
       res.send(result);
     });
     console.log(
