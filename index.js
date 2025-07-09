@@ -61,14 +61,14 @@ async function run() {
     // get all user for Hr
     app.get("/users", async (req, res) => {
       const query = {};
-      const {isVerified} = req.query;
+      const { isVerified } = req.query;
       if (isVerified) {
-        query.isVerified = isVerified === 'true';
+        query.isVerified = isVerified === "true";
       }
       const users = await userCollection.find(query).toArray();
       res.send(users);
     });
-    // get all pay roll for admin 
+    // get all pay roll for admin
     app.get("/payRolls", async (req, res) => {
       const result = await payRolls.find().toArray();
       res.send(result);
@@ -130,6 +130,18 @@ async function run() {
       );
       res.send(result);
     });
+    // PATCH user by ID (update fields like role, salary, designation)
+    app.patch("/user/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const updatedFields = req.body;
+      const result = await userCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: updatedFields }
+      );
+      res.send(result);
+    });
+
     // update the last log int information
     app.patch("/login", async (req, res) => {
       const { email, lastSignInTime } = req.body;
@@ -149,6 +161,14 @@ async function run() {
       const result = await employeeWorkSheets.deleteOne(query);
       res.send(result);
     });
+    // delete or fire a user by Admin
+    app.delete("/user/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await userCollection.deleteOne(query);
+      res.send(result);
+    });
+
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
