@@ -82,7 +82,16 @@ async function run() {
       const result = await employeeWorkSheets.insertOne(sheetData);
       res.send(result);
     });
-
+    // update the entires informatrion
+    app.patch("/workSheet/:id", async (req, res) => {
+      const id = req.params.id;
+      const update = req.body;
+      const result = await employeeWorkSheets.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: update }
+      );
+      res.send(result);
+    });
 
     // update the last log int information
     app.patch("/login", async (req, res) => {
