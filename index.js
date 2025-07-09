@@ -76,6 +76,11 @@ async function run() {
         res.status(500).send({ message: "Server error" });
       }
     });
+    // get all user for Hr
+    app.get("/users", async (req, res) => {
+      const users = await userCollection.find().toArray();
+      res.send(users);
+    });
     // register user work sheets
     app.post("/workSheet", async (req, res) => {
       const sheetData = req.body;
@@ -92,7 +97,16 @@ async function run() {
       );
       res.send(result);
     });
-
+    // update the user verify status by HR
+    app.patch("/user/:id/verify", async (req, res) => {
+      const id = req.params.id;
+      const { isVerified } = req.body;
+      const result = await userCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { isVerified } }
+      );
+      res.send(result);
+    });
     // update the last log int information
     app.patch("/login", async (req, res) => {
       const { email, lastSignInTime } = req.body;
