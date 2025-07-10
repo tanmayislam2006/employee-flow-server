@@ -5,6 +5,7 @@ const port = process.env.PORT || 5000;
 const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const cookieParser = require("cookie-parser");
 app.use(
   cors({
@@ -126,6 +127,26 @@ async function run() {
         { $set: update }
       );
       res.send(result);
+    });
+    // create a payment api
+    app.post("/create-payment-intent", async (req, res) => {
+      const { payRollId, amount } = req.body;
+      const payRoll = await payRolls.findOne({ _id: new ObjectId(payRollId) });
+      if (!payRoll) {
+        return res.status(404).send({ message: "PayRoll not found" });
+      }
+      if (Number(payRoll.salary) === Number(amount)) {
+        const salary = Number(payRoll.salary) * 100;
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: salary, // amount in cents or paisa
+          currency: "usd", // use "usd" or "bdt" if available
+          payment_method_types: ["card"],
+        });
+        // Send clientSecret to frontend
+        res.send({ clientSecret: paymentIntent.client_secret });
+      } else {
+        return res.status(400).send({ message: "Salary amount mismatch" });
+      }
     });
     // update the user verify status by HR
     app.patch("/user/:id/verify", async (req, res) => {
