@@ -92,6 +92,13 @@ async function run() {
       const result = await transactions.find().toArray();
       res.send(result);
     });
+    // get single user specific trasaction history this api is use for hr and employee
+    app.get("/transactions/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { employeeEmail: email };
+      const result = await transactions.find(query).toArray();
+      res.send(result);
+    });
     // register the user data
     app.post("/register", async (req, res) => {
       try {
