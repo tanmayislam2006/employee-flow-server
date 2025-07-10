@@ -73,6 +73,13 @@ async function run() {
       const result = await payRolls.find().toArray();
       res.send(result);
     });
+    // get specifif id pay roll details for admon
+    app.get("/payRoll/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await payRolls.findOne(query);
+      res.send(result);
+    });
     // register the user data
     app.post("/register", async (req, res) => {
       try {
@@ -133,7 +140,6 @@ async function run() {
     // PATCH user by ID (update fields like role, salary, designation)
     app.patch("/user/:id", async (req, res) => {
       const id = req.params.id;
-      console.log(id);
       const updatedFields = req.body;
       const result = await userCollection.updateOne(
         { _id: new ObjectId(id) },
