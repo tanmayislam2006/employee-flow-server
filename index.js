@@ -71,7 +71,7 @@ async function run() {
     });
     // get all pay roll for admin
     app.get("/payRolls", async (req, res) => {
-      const result = await payRolls.find().toArray();
+      const result = await payRolls.find({ status: "pending" }).toArray();
       res.send(result);
     });
     // get specifif id pay roll details for admon
@@ -165,6 +165,16 @@ async function run() {
       const result = await userCollection.updateOne(
         { _id: new ObjectId(id) },
         { $set: updatedFields }
+      );
+      res.send(result);
+    });
+    // after payment success update the pay roll status
+    app.patch("/payRoll/:id", async (req, res) => {
+      const id = req.params.id;
+      const { status } = req.body;
+      const result = await payRolls.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { status } }
       );
       res.send(result);
     });
