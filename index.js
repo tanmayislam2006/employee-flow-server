@@ -35,6 +35,7 @@ async function run() {
     const userCollection = employeeFLow.collection("Users");
     const employeeWorkSheets = employeeFLow.collection("Work-Sheets");
     const payRolls = employeeFLow.collection("Pay-Rolls");
+    const transactions = employeeFLow.collection("Transactions");
     // get signle user information
     app.get("/user/:email", async (req, res) => {
       const email = req.params.email;
@@ -105,7 +106,6 @@ async function run() {
         res.status(500).send({ message: "Server error" });
       }
     });
-
     // register user work sheets
     app.post("/workSheet", async (req, res) => {
       const sheetData = req.body;
@@ -116,16 +116,6 @@ async function run() {
     app.post("/payRoll", async (req, res) => {
       const payRollData = req.body;
       const result = await payRolls.insertOne(payRollData);
-      res.send(result);
-    });
-    // update the entires informatrion
-    app.patch("/workSheet/:id", async (req, res) => {
-      const id = req.params.id;
-      const update = req.body;
-      const result = await employeeWorkSheets.updateOne(
-        { _id: new ObjectId(id) },
-        { $set: update }
-      );
       res.send(result);
     });
     // create a payment api
@@ -147,6 +137,21 @@ async function run() {
       } else {
         return res.status(400).send({ message: "Salary amount mismatch" });
       }
+    });
+    app.post("/transaction", async (req, res) => {
+      const transactionData = req.body;
+      const result = await transactions.insertOne(transactionData);
+      res.send(result);
+    });
+    // update the entires informatrion
+    app.patch("/workSheet/:id", async (req, res) => {
+      const id = req.params.id;
+      const update = req.body;
+      const result = await employeeWorkSheets.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: update }
+      );
+      res.send(result);
     });
     // update the user verify status by HR
     app.patch("/user/:id/verify", async (req, res) => {
