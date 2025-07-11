@@ -144,14 +144,17 @@ async function run() {
       const users = await userCollection.find(query).toArray();
       res.send(users);
     });
-    // get all pay roll for admin
+    // get all pay roll for admin and hr
     app.get("/payRolls", async (req, res) => {
       const query = {};
-      const { status } = req.query;
+      const { status,employeeEmail } = req.query;
       if (status) {
         query.status = status;
       }
-      const result = await payRolls.find(query).toArray();
+      if (employeeEmail) {
+        query.employeeEmail = employeeEmail;
+      }
+      const result = await payRolls.find(query).sort({ payrequest_at: -1 }).toArray();
       res.send(result);
     });
     // get specifif id pay roll details for admon
