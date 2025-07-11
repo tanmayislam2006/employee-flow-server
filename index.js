@@ -36,6 +36,7 @@ async function run() {
     const employeeWorkSheets = employeeFLow.collection("Work-Sheets");
     const payRolls = employeeFLow.collection("Pay-Rolls");
     const transactions = employeeFLow.collection("Transactions");
+    const contacts = employeeFLow.collection("Contacts");
     // get signle user information
     app.get("/user/:email", async (req, res) => {
       const email = req.params.email;
@@ -176,6 +177,11 @@ async function run() {
       const result = await transactions.find(query).toArray();
       res.send(result);
     });
+    // get all contact messages for admin
+    app.get("/contacts", async (req, res) => {
+      const result = await contacts.find().toArray();
+      res.send(result);
+    });
     // register the user data
     app.post("/register", async (req, res) => {
       try {
@@ -235,6 +241,12 @@ async function run() {
     app.post("/transaction", async (req, res) => {
       const transactionData = req.body;
       const result = await transactions.insertOne(transactionData);
+      res.send(result);
+    });
+    // cont register al contact message and contact information
+    app.post("/contact", async (req, res) => {
+      const contactData = req.body;
+      const result = await contacts.insertOne(contactData);
       res.send(result);
     });
     // update the entires informatrion
