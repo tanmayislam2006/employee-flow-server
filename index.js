@@ -57,9 +57,83 @@ async function run() {
     });
     // get all user(employee) work sheets for HR
     app.get("/workSheets", async (req, res) => {
-      const result = await employeeWorkSheets.find().toArray();
-      res.send(result);
+      const { employee, search, month, year } = req.query;
+
+      /**
+       * Build $match stage dynamically based on provided query parameters
+       */
+      const matchStage = {};
+
+      // Filter by employee name (exact match)
+      if (employee) {
+        matchStage.employee_name = employee;
+      }
+
+      // Filter by search term (partial match, case-insensitive) on name or email
+      if (search) {
+        matchStage.$or = [
+          { employee_name: { $regex: search, $options: "i" } },
+          { employee_email: { $regex: search, $options: "i" } },
+        ];
+      }
+
+      // Later we'll add month and year filtering after projecting them
+
+      try {
+        const pipeline = [
+          /**
+           * Stage 1: Add month and year fields
+           * - Converts 'date' string to Date
+           * - Extracts month and year
+           */
+          {
+            $addFields: {
+              parsedDate: { $toDate: "$date" },
+            },
+          },
+          {
+            $addFields: {
+              month: { $month: "$parsedDate" },
+              year: { $year: "$parsedDate" },
+            },
+          },
+
+          /**
+           * Stage 2: Match stage
+           * - Includes employee, search filters from query
+           * - Adds month and year if provided
+           */
+          {
+            $match: {
+              ...matchStage,
+              ...(month ? { month: parseInt(month) } : {}),
+              ...(year ? { year: parseInt(year) } : {}),
+            },
+          },
+
+          /**
+           * Stage 3: Optionally remove added fields
+           * (you can keep them if you want)
+           */
+          {
+            $project: {
+              parsedDate: 0,
+              month: 0,
+              year: 0,
+            },
+          },
+        ];
+
+        // Run aggregation pipeline
+        const results = await employeeWorkSheets.aggregate(pipeline).toArray();
+
+        res.send(results);
+      } catch (error) {
+        console.error("Error in /workSheets:", error);
+        res.status(500).send({ message: "Server error", error });
+      }
     });
+
     // get all user for Hr
     app.get("/users", async (req, res) => {
       const query = {};
