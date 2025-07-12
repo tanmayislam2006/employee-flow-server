@@ -148,14 +148,17 @@ async function run() {
     // get all pay roll for admin and hr
     app.get("/payRolls", async (req, res) => {
       const query = {};
-      const { status,employeeEmail } = req.query;
+      const { status, employeeEmail } = req.query;
       if (status) {
         query.status = status;
       }
       if (employeeEmail) {
         query.employeeEmail = employeeEmail;
       }
-      const result = await payRolls.find(query).sort({ payrequest_at: -1 }).toArray();
+      const result = await payRolls
+        .find(query)
+        .sort({ payrequest_at: -1 })
+        .toArray();
       res.send(result);
     });
     // get specifif id pay roll details for admon
@@ -174,8 +177,23 @@ async function run() {
     app.get("/transactions/:email", async (req, res) => {
       const email = req.params.email;
       const query = { employeeEmail: email };
-      const result = await transactions.find(query).toArray();
-      res.send(result);
+      const { item, page } = req.query;
+      // Default values
+      const itemsPerPage = parseInt(item) || 5;
+      const currentPage = parseInt(page) || 1;
+      const skip = (currentPage - 1) * itemsPerPage;
+      // Get total count
+      const totalItems = await transactions.countDocuments(query);
+      const result = await transactions
+        .find(query)
+        .skip(skip)
+        .limit(itemsPerPage)
+        .sort({ paid_at: -1 })
+        .toArray();
+      res.send({
+        transactions: result,
+        totalItems,
+      });
     });
     // get all contact messages for admin
     app.get("/contacts", async (req, res) => {
