@@ -159,7 +159,11 @@ async function run() {
       const currentPage = parseInt(page) || 1;
       const skip = (currentPage - 1) * itemsPerPage;
       const totalItems = await userCollection.countDocuments(query);
-      const result = await userCollection.find(query).skip(skip).limit(itemsPerPage).toArray();
+      const result = await userCollection
+        .find(query)
+        .skip(skip)
+        .limit(itemsPerPage)
+        .toArray();
       res.send({
         employees: result,
         totalItems,
@@ -179,7 +183,7 @@ async function run() {
       }
 
       // Pagination defaults
-      const itemsPerPage = parseInt(item) 
+      const itemsPerPage = parseInt(item);
       const currentPage = parseInt(page) || 1;
       const skip = (currentPage - 1) * itemsPerPage;
 
@@ -210,7 +214,7 @@ async function run() {
     app.get("/transactions", async (req, res) => {
       const { item, page } = req.query;
       // Pagination defaults
-      const itemsPerPage = parseInt(item)
+      const itemsPerPage = parseInt(item);
       const currentPage = parseInt(page) || 1;
       const skip = (currentPage - 1) * itemsPerPage;
       const totalItems = await transactions.countDocuments();
@@ -231,7 +235,7 @@ async function run() {
       const query = { employeeEmail: email };
       const { item, page } = req.query;
       // Default values
-      const itemsPerPage = parseInt(item)
+      const itemsPerPage = parseInt(item);
       const currentPage = parseInt(page) || 1;
       const skip = (currentPage - 1) * itemsPerPage;
       // Get total count
@@ -251,7 +255,7 @@ async function run() {
     app.get("/contacts", async (req, res) => {
       const { item, page } = req.query;
       // Pagination defaults
-      const itemsPerPage = parseInt(item)
+      const itemsPerPage = parseInt(item);
       const currentPage = parseInt(page) || 1;
       const skip = (currentPage - 1) * itemsPerPage;
       const totalItems = await contacts.countDocuments();
@@ -263,6 +267,14 @@ async function run() {
       res.send({
         messages: result,
         totalItems,
+      });
+    });
+    // get user status is he Active or Fired
+    app.get("/user/email/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await userCollection.findOne({ email });
+      res.send({
+        status: result.status,
       });
     });
     // register the user data
