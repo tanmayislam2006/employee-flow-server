@@ -50,11 +50,23 @@ async function run() {
     app.get("/myWorkSheet/:email", async (req, res) => {
       const email = req.params.email;
       const query = { employee_email: email };
+      // Pagination defaults
+      const { item, page } = req.query;
+
+      const itemsPerPage = parseInt(item);
+      const currentPage = parseInt(page) || 1;
+      const skip = (currentPage - 1) * itemsPerPage;
+      const totalItems = await employeeWorkSheets.countDocuments(query);
       const result = await employeeWorkSheets
         .find(query)
         .sort({ date: -1 })
+        .skip(skip)
+        .limit(itemsPerPage)
         .toArray();
-      res.send(result);
+      res.send({
+        myEntries: result,
+        totalItems,
+      });
     });
     // get all user(employee) work sheets for HR
     app.get("/workSheets", async (req, res) => {
@@ -138,30 +150,56 @@ async function run() {
     // get all user for Hr
     app.get("/users", async (req, res) => {
       const query = {};
-      const { isVerified } = req.query;
+      const { isVerified, item, page } = req.query;
       if (isVerified) {
         query.isVerified = isVerified === "true";
       }
-      const users = await userCollection.find(query).toArray();
-      res.send(users);
+      // Pagination defaults
+      const itemsPerPage = parseInt(item);
+      const currentPage = parseInt(page) || 1;
+      const skip = (currentPage - 1) * itemsPerPage;
+      const totalItems = await userCollection.countDocuments(query);
+      const result = await userCollection.find(query).skip(skip).limit(itemsPerPage).toArray();
+      res.send({
+        employees: result,
+        totalItems,
+      });
     });
     // get all pay roll for admin and hr
     app.get("/payRolls", async (req, res) => {
       const query = {};
-      const { status, employeeEmail } = req.query;
+      const { status, employeeEmail, item, page } = req.query;
+
+      // Build the query
       if (status) {
         query.status = status;
       }
       if (employeeEmail) {
         query.employeeEmail = employeeEmail;
       }
+
+      // Pagination defaults
+      const itemsPerPage = parseInt(item) 
+      const currentPage = parseInt(page) || 1;
+      const skip = (currentPage - 1) * itemsPerPage;
+
+      // Count AFTER building the filter
+      const totalItems = await payRolls.countDocuments(query);
+
+      // Fetch paginated results
       const result = await payRolls
         .find(query)
+        .skip(skip)
+        .limit(itemsPerPage)
         .sort({ payrequest_at: -1 })
         .toArray();
-      res.send(result);
+
+      res.send({
+        payRolls: result,
+        totalItems,
+      });
     });
-    // get specifif id pay roll details for admon
+    // get specifif id pay roll details for admin
     app.get("/payRoll/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -170,8 +208,22 @@ async function run() {
     });
     // get al payment transactions
     app.get("/transactions", async (req, res) => {
-      const result = await transactions.find().toArray();
-      res.send(result);
+      const { item, page } = req.query;
+      // Pagination defaults
+      const itemsPerPage = parseInt(item)
+      const currentPage = parseInt(page) || 1;
+      const skip = (currentPage - 1) * itemsPerPage;
+      const totalItems = await transactions.countDocuments();
+      const result = await transactions
+        .find()
+        .sort({ paid_at: -1 })
+        .skip(skip)
+        .limit(itemsPerPage)
+        .toArray();
+      res.send({
+        transactions: result,
+        totalItems,
+      });
     });
     // get single user specific trasaction history this api is use for hr and employee
     app.get("/transactions/:email", async (req, res) => {
@@ -179,7 +231,7 @@ async function run() {
       const query = { employeeEmail: email };
       const { item, page } = req.query;
       // Default values
-      const itemsPerPage = parseInt(item) || 5;
+      const itemsPerPage = parseInt(item)
       const currentPage = parseInt(page) || 1;
       const skip = (currentPage - 1) * itemsPerPage;
       // Get total count
@@ -197,8 +249,21 @@ async function run() {
     });
     // get all contact messages for admin
     app.get("/contacts", async (req, res) => {
-      const result = await contacts.find().toArray();
-      res.send(result);
+      const { item, page } = req.query;
+      // Pagination defaults
+      const itemsPerPage = parseInt(item)
+      const currentPage = parseInt(page) || 1;
+      const skip = (currentPage - 1) * itemsPerPage;
+      const totalItems = await contacts.countDocuments();
+      const result = await contacts
+        .find()
+        .skip(skip)
+        .limit(itemsPerPage)
+        .toArray();
+      res.send({
+        messages: result,
+        totalItems,
+      });
     });
     // register the user data
     app.post("/register", async (req, res) => {
