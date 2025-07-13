@@ -172,7 +172,7 @@ async function run() {
     // get all pay roll for admin and hr
     app.get("/payRolls", async (req, res) => {
       const query = {};
-      const { status, employeeEmail, item, page } = req.query;
+      const { status, employeeEmail, item, page, hrEmail } = req.query;
 
       // Build the query
       if (status) {
@@ -181,7 +181,9 @@ async function run() {
       if (employeeEmail) {
         query.employeeEmail = employeeEmail;
       }
-
+      if (hrEmail) {
+        query.hrEmail = hrEmail;
+      }
       // Pagination defaults
       const itemsPerPage = parseInt(item);
       const currentPage = parseInt(page) || 1;
@@ -351,6 +353,133 @@ async function run() {
         });
       } catch (error) {
         console.error("Error in /dashboard-employee:", error);
+        res.status(500).send({ message: "Server error", error });
+      }
+    });
+    // get dashboard summary for HR
+    app.get("/hrDashboardSummary/:hrEmail", async (req, res) => {
+      const hrEmail = req.params.hrEmail;
+
+      if (!hrEmail) {
+        return res.status(400).send({ message: "hrEmail is required" });
+      }
+
+      const now = new Date();
+
+      // Calculate UTC date ranges
+      const todayStart = new Date(
+        Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth(),
+          now.getUTCDate(),
+          0,
+          0,
+          0,
+          0
+        )
+      );
+      const weekStart = new Date(todayStart);
+      weekStart.setUTCDate(todayStart.getUTCDate() - 7);
+
+      const yearStart = new Date(
+        Date.UTC(now.getUTCFullYear(), 0, 1, 0, 0, 0, 0)
+      );
+      const monthStart = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0)
+      );
+
+      try {
+        const pipeline = [
+          {
+            $facet: {
+              totalCounts: [
+                { $match: { hrEmail } },
+                {
+                  $group: {
+                    _id: "$status",
+                    count: { $sum: 1 },
+                  },
+                },
+              ],
+
+              paidTotalSalary: [
+                { $match: { hrEmail, status: "paid" } },
+                {
+                  $group: {
+                    _id: null,
+                    totalSalary: { $sum: "$salary" },
+                  },
+                },
+              ],
+
+              todayRequests: [
+                { $match: { hrEmail, payrequest_at: { $gte: todayStart } } },
+                { $count: "count" },
+              ],
+
+              weeklyRequests: [
+                { $match: { hrEmail, payrequest_at: { $gte: weekStart } } },
+                { $count: "count" },
+              ],
+
+              yearlyRequests: [
+                { $match: { hrEmail, payrequest_at: { $gte: yearStart } } },
+                { $count: "count" },
+              ],
+
+              monthlyRequests: [
+                { $match: { hrEmail, payrequest_at: { $gte: monthStart } } },
+                { $count: "count" },
+              ],
+
+              latestRequests: [
+                { $match: { hrEmail } },
+                { $sort: { payrequest_at: -1 } },
+                { $limit: 5 },
+              ],
+            },
+          },
+        ];
+
+        const result = await payRolls.aggregate(pipeline).toArray();
+
+        if (!result || result.length === 0) {
+          return res.send({
+            totalRequests: 0,
+            totalPaid: 0,
+            totalPending: 0,
+            paidTotalSalary: 0,
+            todayRequests: 0,
+            weeklyRequests: 0,
+            yearlyRequests: 0,
+            monthlyRequests: 0,
+            latestRequests: [],
+          });
+        }
+
+        const data = result[0];
+
+        // Parse total status counts
+        let totalPaid = 0;
+        let totalPending = 0;
+        data.totalCounts.forEach((item) => {
+          if (item._id === "paid") totalPaid = item.count;
+          if (item._id === "pending") totalPending = item.count;
+        });
+
+        res.send({
+          totalRequests: totalPaid + totalPending,
+          totalPaid,
+          totalPending,
+          paidTotalSalary: data.paidTotalSalary[0]?.totalSalary || 0,
+          todayRequests: data.todayRequests[0]?.count || 0,
+          weeklyRequests: data.weeklyRequests[0]?.count || 0,
+          yearlyRequests: data.yearlyRequests[0]?.count || 0,
+          monthlyRequests: data.monthlyRequests[0]?.count || 0,
+          latestRequests: data.latestRequests,
+        });
+      } catch (error) {
+        console.error("Error in /hrDashboardSummary:", error);
         res.status(500).send({ message: "Server error", error });
       }
     });
