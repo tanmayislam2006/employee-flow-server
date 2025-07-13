@@ -483,6 +483,151 @@ async function run() {
         res.status(500).send({ message: "Server error", error });
       }
     });
+    // get admin dashboard summary
+    app.get("/adminDashboardSummary", async (req, res) => {
+      try {
+        const now = new Date();
+
+        // 🧮 Time Ranges (UTC-safe)
+        const todayStart = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate()
+        );
+        const weekStart = new Date(todayStart);
+        weekStart.setDate(todayStart.getDate() - 7);
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const yearStart = new Date(now.getFullYear(), 0, 1);
+
+        // 🚀 Step 1: Aggregation on payRolls (for counts)
+        const payrollStats = await payRolls
+          .aggregate([
+            {
+              $facet: {
+                // 🧮 Count by status (paid, pending)
+                statusCounts: [
+                  { $group: { _id: "$status", count: { $sum: 1 } } },
+                ],
+              },
+            },
+          ])
+          .toArray();
+
+        const counts = payrollStats[0].statusCounts || [];
+        let totalPaid = 0,
+          totalPending = 0;
+        counts.forEach((item) => {
+          if (item._id === "paid") totalPaid = item.count;
+          if (item._id === "pending") totalPending = item.count;
+        });
+
+        // 🚀 Step 2: Aggregation on transactions (for financial data)
+        const transactionStats = await transactions
+          .aggregate([
+            {
+              $facet: {
+                // 💰 Total amount paid
+                totalSpent: [
+                  {
+                    $group: {
+                      _id: null,
+                      total: { $sum: { $toDouble: "$amount" } },
+                    },
+                  },
+                ],
+                // 🧾 Today spending
+                todaySpent: [
+                  { $match: { paid_at: { $gte: todayStart, $lte: now } } },
+                  {
+                    $group: {
+                      _id: null,
+                      total: { $sum: { $toDouble: "$amount" } },
+                    },
+                  },
+                ],
+                // 📆 Weekly spending
+                weekSpent: [
+                  { $match: { paid_at: { $gte: weekStart, $lte: now } } },
+                  {
+                    $group: {
+                      _id: null,
+                      total: { $sum: { $toDouble: "$amount" } },
+                    },
+                  },
+                ],
+                // 🗓️ Monthly spending
+                monthSpent: [
+                  { $match: { paid_at: { $gte: monthStart, $lte: now } } },
+                  {
+                    $group: {
+                      _id: null,
+                      total: { $sum: { $toDouble: "$amount" } },
+                    },
+                  },
+                ],
+                // 📅 Yearly spending
+                yearSpent: [
+                  { $match: { paid_at: { $gte: yearStart, $lte: now } } },
+                  {
+                    $group: {
+                      _id: null,
+                      total: { $sum: { $toDouble: "$amount" } },
+                    },
+                  },
+                ],
+                // 📈 Per month analysis (for chart)
+                perMonth: [
+                  {
+                    $group: {
+                      _id: {
+                        month: "$pay_for_month",
+                        year: "$pay_for_year",
+                      },
+                      total: { $sum: { $toDouble: "$amount" } },
+                      count: { $sum: 1 },
+                    },
+                  },
+                  { $sort: { "_id.year": 1, "_id.month": 1 } },
+                ],
+                // 🕐 Latest 5 transactions
+                latestTransactions: [
+                  { $sort: { paid_at: -1 } },
+                  { $limit: 5 },
+                  {
+                    $project: {
+                      transactionId: 1,
+                      employeeName: 1,
+                      amount: 1,
+                      paid_at: 1,
+                      paymentMethod: 1,
+                    },
+                  },
+                ],
+              },
+            },
+          ])
+          .toArray();
+
+        const t = transactionStats[0];
+
+        // 📦 Final response
+        res.send({
+          totalRequests: totalPaid + totalPending,
+          totalPaid,
+          totalPending,
+          totalMoneySpent: t.totalSpent[0]?.total || 0,
+          todaySpent: t.todaySpent[0]?.total || 0,
+          weekSpent: t.weekSpent[0]?.total || 0,
+          monthSpent: t.monthSpent[0]?.total || 0,
+          yearSpent: t.yearSpent[0]?.total || 0,
+          paidRequestsPerMonth: t.perMonth || [],
+          latestTransactions: t.latestTransactions || [],
+        });
+      } catch (error) {
+        console.error("Error in /adminDashboardSummary:", error);
+        res.status(500).send({ message: "Server error", error });
+      }
+    });
 
     // register the user data
     app.post("/register", async (req, res) => {
