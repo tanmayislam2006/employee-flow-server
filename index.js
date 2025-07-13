@@ -277,6 +277,84 @@ async function run() {
         status: result.status,
       });
     });
+    // get dashboard summary for employee
+    app.get("/dashboard-employee/:email", async (req, res) => {
+      const email = req.params.email;
+      /**
+       * GET /dashboard-employee/:email
+       *
+       * Returns a summary dashboard for an employee:
+       * - Total hours worked
+       * - Work hours by task (for chart)
+       * - Total amount paid
+       * - Last payment date
+       * - Optional recent payment records
+       */
+      try {
+        // -----------------------------
+        // Part 1: Aggregate employeeWorkSheets
+        // -----------------------------
+        const workAggregation = await employeeWorkSheets
+          .aggregate([
+            { $match: { employee_email: email } },
+            {
+              $group: {
+                _id: "$task",
+                totalHours: { $sum: "$hour" },
+              },
+            },
+          ])
+          .toArray();
+
+        // Sum all tasks for total hours
+        const totalHours = workAggregation.reduce(
+          (acc, item) => acc + item.totalHours,
+          0
+        );
+
+        // -----------------------------
+        // Part 2: Aggregate Transactions
+        // -----------------------------
+        // Get total paid and last payment date
+        const transactionsData = await transactions
+          .find({ employeeEmail: email })
+          .sort({ paid_at: -1 }) // latest first
+          .toArray();
+
+        const totalPaid = transactionsData.reduce(
+          (acc, tx) => acc + Number(tx.amount),
+          0
+        );
+        const lastPaidDate =
+          transactionsData.length > 0 ? transactionsData[0].paid_at : null;
+
+        // Optional: pick only recent N payments
+        const recentPayments = transactionsData.slice(0, 5).map((tx) => ({
+          amount: Number(tx.amount),
+          pay_for_month: tx.pay_for_month,
+          pay_for_year: tx.pay_for_year,
+          paid_at: tx.paid_at,
+        }));
+
+        // -----------------------------
+        // Build response
+        // -----------------------------
+        res.send({
+          totalHours,
+          workByTask: workAggregation.map((item) => ({
+            task: item._id,
+            totalHours: item.totalHours,
+          })),
+          totalPaid,
+          lastPaidDate,
+          payments: recentPayments,
+        });
+      } catch (error) {
+        console.error("Error in /dashboard-employee:", error);
+        res.status(500).send({ message: "Server error", error });
+      }
+    });
+
     // register the user data
     app.post("/register", async (req, res) => {
       try {
