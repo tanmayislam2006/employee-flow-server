@@ -146,7 +146,6 @@ async function run() {
         res.status(500).send({ message: "Server error", error });
       }
     });
-
     // get all user for Hr
     app.get("/users", async (req, res) => {
       const query = {};
